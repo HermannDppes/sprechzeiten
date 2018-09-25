@@ -1,0 +1,6 @@
+[package]
+name = "sprechzeiten"
+version = "0.1.0"
+authors = ["Hermann Döppes <hermannd.ouml.ppes@gmail.com>"]
+
+[dependencies]
