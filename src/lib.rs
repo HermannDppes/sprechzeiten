@@ -2,6 +2,11 @@ pub fn process(str: &str) -> &str {
 	str
 }
 
+#[macro_use]
+extern crate nom;
+
+mod hrdb;
+
 use std::collections::HashSet;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
