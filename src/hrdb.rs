@@ -28,8 +28,11 @@ named!(day_range<CompleteStr, Days>,
 		begin: day >>
 		tag!(" – ") >>
 		end: day >>
-		// FIXME
-		({let mut days: Days = Days::new(); days.insert(begin, end); days})
+		({
+			let mut days = Days::new();
+			days.insert(begin, end);
+			days
+		})
 	)
 );
 
@@ -64,5 +67,17 @@ mod tests {
 	fn test_day() {
 		let (_, res) = day(CompleteStr("Mo")).unwrap();
 		assert_eq!(res, Day::Mo);
+	}
+
+	#[test]
+	fn test_day_range() {
+		let (_, res) = day_range(CompleteStr("Di – Do")).unwrap();
+		assert_eq!(res.days.len(), 3);
+	}
+
+	#[test]
+	fn test_time() {
+		let (_, res) = time(CompleteStr("10:38")).unwrap();
+		assert_eq!(res, Time::new(10, 38));
 	}
 }
