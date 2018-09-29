@@ -31,7 +31,7 @@ impl Day {
 	}
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 struct Time {
 	hours: u8,
 	minutes: u8,
@@ -47,13 +47,14 @@ impl Time {
 
 #[derive(Debug)]
 struct TimeRange {
+	day: Day,
 	begin: Time,
 	end: Time,
 }
 
 impl TimeRange {
-	fn new(begin: Time, end: Time) -> TimeRange {
-		TimeRange { begin, end }
+	fn new(day: Day, begin: Time, end: Time) -> TimeRange {
+		TimeRange { day, begin, end }
 	}
 }
 

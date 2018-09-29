@@ -86,14 +86,31 @@ named!(time<CompleteStr, Time>,
 	)
 );
 
-named!(time_range<CompleteStr, TimeRange>,
+named!(time_pair<CompleteStr, (Time, Time)>,
 	do_parse!(
 		begin: time >>
 		tag!(" – ") >>
 		end: time >>
-		(TimeRange::new(begin, end))
+		((begin, end))
 	)
 );
+
+fn ranges_from_days_times(
+	days: Vec<Day>,
+	times: Vec<(Time, Time)>,
+) -> Vec<TimeRange> {
+	let mut ranges = Vec::with_capacity(days.len() * times.len());
+	for day in days {
+		for (begin, end) in &times {
+			ranges.push(TimeRange::new(
+				day.clone(),
+				begin.clone(),
+				end.clone(),
+			));
+		}
+	}
+	ranges
+}
 
 #[cfg(test)]
 mod tests {
