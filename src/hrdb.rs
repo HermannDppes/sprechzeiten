@@ -120,7 +120,10 @@ mod tests {
 	#[test]
 	fn test_days() {
 		let (_, res) = days(CompleteStr("Tgl")).unwrap();
-		assert_eq!(res, vec![Day::Mo, Day::Di, Day::Mi, Day::Do, Day::Fr]);
+		assert_eq!(
+			res,
+			vec![Day::Mo, Day::Di, Day::Mi, Day::Do, Day::Fr]
+		);
 	}
 
 	#[test]

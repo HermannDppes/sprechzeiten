@@ -15,7 +15,7 @@ enum Day {
 	Di,
 	Mi,
 	Do,
-	Fr
+	Fr,
 }
 
 impl Day {
@@ -26,7 +26,7 @@ impl Day {
 			Day::Di => Day::Mi,
 			Day::Mi => Day::Do,
 			Day::Do => Day::Fr,
-			Day::Fr => panic!()
+			Day::Fr => panic!(),
 		}
 	}
 }
@@ -34,26 +34,26 @@ impl Day {
 #[derive(Debug, PartialEq, Eq)]
 struct Time {
 	hours: u8,
-	minutes: u8
+	minutes: u8,
 }
 
 impl Time {
 	fn new(hours: u8, minutes: u8) -> Time {
 		assert!(hours <= 23);
 		assert!(minutes <= 59);
-		Time {hours, minutes}
+		Time { hours, minutes }
 	}
 }
 
 #[derive(Debug)]
 struct TimeRange {
 	begin: Time,
-	end: Time
+	end: Time,
 }
 
 impl TimeRange {
 	fn new(begin: Time, end: Time) -> TimeRange {
-		TimeRange {begin, end}
+		TimeRange { begin, end }
 	}
 }
 
@@ -74,7 +74,13 @@ mod tests {
 
 	#[test]
 	fn time_works() {
-		assert_eq!(Time::new(11, 23), Time {hours: 11, minutes: 23});
+		assert_eq!(
+			Time::new(11, 23),
+			Time {
+				hours: 11,
+				minutes: 23
+			}
+		);
 	}
 
 	#[test]
