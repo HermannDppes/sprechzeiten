@@ -69,6 +69,10 @@ named!(day_list<CompleteStr, Vec<Day>>,
 	)
 );
 
+named!(days<CompleteStr, Vec<Day>>,
+	alt!(value!(days_from_range(Day::Mo, Day::Fr), tag!("Tgl")) | day_list)
+);
+
 named!(small_number<CompleteStr, u8>,
 	map!(nom::digit, |str| FromStr::from_str(&str).unwrap())
 );
@@ -111,6 +115,12 @@ mod tests {
 	fn test_day_list() {
 		let (_, res) = day_list(CompleteStr("Mo, Mi – Fr")).unwrap();
 		assert_eq!(res, vec![Day::Mo, Day::Mi, Day::Do, Day::Fr]);
+	}
+
+	#[test]
+	fn test_days() {
+		let (_, res) = days(CompleteStr("Tgl")).unwrap();
+		assert_eq!(res, vec![Day::Mo, Day::Di, Day::Mi, Day::Do, Day::Fr]);
 	}
 
 	#[test]
