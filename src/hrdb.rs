@@ -126,6 +126,28 @@ named_args!(add_times<'a>(office: &mut Office) <CompleteStr<'a>, ()>,
 	)
 );
 
+named_args!(add_comment<'a>(office: &mut Office) <CompleteStr<'a>, ()>,
+	do_parse!(
+		tag!("\n") >>
+		comment: is_not!("\n") >>
+		(office.add_comment(String::from_str(comment.as_ref()).unwrap()))
+	)
+);
+
+fn add_info<'a>(
+	input: CompleteStr<'a>,
+	office: &mut Office,
+) -> nom::IResult<CompleteStr<'a>, ()> {
+	if let Ok((rest, _)) = add_times(input, office) {
+		Ok((rest, ()))
+	} else if let Ok((rest, _)) = add_comment(input, office) {
+		Ok((rest, ()))
+	} else {
+		use nom::*;
+		Err(Err::Error(Context::Code(input, ErrorKind::Custom(0))))
+	}
+}
+
 named!(base_office<CompleteStr, Office>,
 	do_parse!(
 		names: names >>
@@ -138,7 +160,7 @@ named!(base_office<CompleteStr, Office>,
 fn office(input: CompleteStr) -> nom::IResult<CompleteStr, Office> {
 	let (mut input, mut office) = base_office(input).unwrap();
 	loop {
-		let res = add_times(input, &mut office);
+		let res = add_info(input, &mut office);
 		if let Ok((rest, _)) = res {
 			input = rest;
 		} else {

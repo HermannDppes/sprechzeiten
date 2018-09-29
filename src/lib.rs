@@ -18,20 +18,27 @@ pub struct Office {
 	names: Vec<String>,
 	phones: Vec<String>,
 	times: Vec<TimeRange>,
+	comments: Vec<String>,
 }
 
 impl Office {
 	fn new(names: Vec<String>, phones: Vec<String>) -> Office {
 		let times = Vec::new();
+		let comments = Vec::new();
 		Office {
 			names,
 			phones,
 			times,
+			comments,
 		}
 	}
 
 	fn add_times(&mut self, mut new_times: Vec<TimeRange>) {
 		self.times.append(&mut new_times);
+	}
+
+	fn add_comment(&mut self, comment: String) {
+		self.comments.push(comment);
 	}
 }
 
