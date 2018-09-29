@@ -1,5 +1,9 @@
 pub fn process(str: &str) -> &str {
-	str
+	let (input, offices) =
+		hrdb::offices(nom::types::CompleteStr(str)).unwrap();
+	println!("{:?}", offices);
+	println!("{}", input.as_ref());
+	""
 }
 
 #[macro_use]
@@ -8,6 +12,28 @@ extern crate nom;
 mod hrdb;
 
 use std::collections::HashSet;
+
+#[derive(Debug)]
+pub struct Office {
+	names: Vec<String>,
+	phones: Vec<String>,
+	times: Vec<TimeRange>,
+}
+
+impl Office {
+	fn new(names: Vec<String>, phones: Vec<String>) -> Office {
+		let times = Vec::new();
+		Office {
+			names,
+			phones,
+			times,
+		}
+	}
+
+	fn add_times(&mut self, mut new_times: Vec<TimeRange>) {
+		self.times.append(&mut new_times);
+	}
+}
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 enum Day {

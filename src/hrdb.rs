@@ -5,12 +5,16 @@ use super::*;
 
 use std::str::FromStr;
 
-named!(names<CompleteStr, Vec<CompleteStr>>,
-	separated_list!(tag!(", "), is_not!(",\n"))
+fn stringify(str: CompleteStr) -> String {
+	String::from_str(str.as_ref()).unwrap()
+}
+
+named!(names<CompleteStr, Vec<String>>,
+	separated_list!(tag!(", "), map!(is_not!(",\n"), stringify))
 );
 
-named!(phone_numbers<CompleteStr, Vec<CompleteStr>>,
-	separated_list!(tag!(", "), nom::digit)
+named!(phone_numbers<CompleteStr, Vec<String>>,
+	separated_list!(tag!(", "), map!(nom::digit, stringify))
 );
 
 named!(day<CompleteStr, Day>,
@@ -111,6 +115,42 @@ fn ranges_from_days_times(
 	}
 	ranges
 }
+
+named_args!(add_times<'a>(office: &mut Office) <CompleteStr<'a>, ()>,
+	do_parse!(
+		tag!("\n") >>
+		days: days >>
+		tag!(": ") >>
+		times: separated_list!(tag!(", "), time_pair) >>
+		(office.add_times(ranges_from_days_times(days, times)))
+	)
+);
+
+named!(base_office<CompleteStr, Office>,
+	do_parse!(
+		names: names >>
+		tag!("\n") >>
+		phones: phone_numbers >>
+		(Office::new(names, phones))
+	)
+);
+
+fn office(input: CompleteStr) -> nom::IResult<CompleteStr, Office> {
+	let (mut input, mut office) = base_office(input).unwrap();
+	loop {
+		let res = add_times(input, &mut office);
+		if let Ok((rest, _)) = res {
+			input = rest;
+		} else {
+			break;
+		}
+	}
+	Ok((input, office))
+}
+
+named!(pub offices<CompleteStr, Vec<Office>>,
+	separated_list!(tag!("\n\n"), office)
+);
 
 #[cfg(test)]
 mod tests {
