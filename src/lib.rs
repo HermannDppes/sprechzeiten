@@ -31,26 +31,6 @@ impl Day {
 	}
 }
 
-struct Days {
-	days: HashSet<Day>
-}
-
-impl Days {
-	fn new() -> Days {
-		let days = HashSet::new();
-		Days {days}
-	}
-
-	fn insert(&mut self, begin: Day, end: Day) {
-		self.days.insert(begin.clone());
-		let mut day = begin;
-		while day != end {
-			day = day.next();
-			self.days.insert(day.clone());
-		}
-	}
-}
-
 #[derive(Debug, PartialEq, Eq)]
 struct Time {
 	hours: u8,

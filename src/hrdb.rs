@@ -23,19 +23,51 @@ named!(day<CompleteStr, Day>,
 	)
 );
 
-named!(day_range<CompleteStr, Days>,
+fn single_day(day: Day) -> Vec<Day> {
+	let mut days = Vec::new();
+	days.push(day);
+	days
+}
+
+fn days_from_range(begin: Day, end: Day) -> Vec<Day> {
+	let mut days = single_day(begin.clone());
+	let mut day = begin;
+	while day != end {
+		day = day.next();
+		days.push(day.clone());
+	}
+	days
+}
+
+named!(day_range<CompleteStr, Vec<Day>>,
 	do_parse!(
 		begin: day >>
 		tag!(" – ") >>
 		end: day >>
-		({
-			let mut days = Days::new();
-			days.insert(begin, end);
-			days
-		})
+		(days_from_range(begin, end))
 	)
 );
 
+named!(day_list_elem<CompleteStr, Vec<Day>>,
+	alt!(day_range | map!(day, single_day))
+);
+
+fn merge_days(mut a: Vec<Day>, mut b: Vec<Day>) -> Vec<Day> {
+	a.append(&mut b);
+	a
+}
+
+named!(day_list<CompleteStr, Vec<Day>>,
+	do_parse!(
+		first: day_list_elem >>
+		days: fold_many0!(
+			do_parse!(tag!(", ") >> e: day_list_elem >> (e)),
+			first,
+			merge_days
+		) >>
+		(days)
+	)
+);
 
 named!(small_number<CompleteStr, u8>,
 	map!(nom::digit, |str| FromStr::from_str(&str).unwrap())
@@ -72,7 +104,13 @@ mod tests {
 	#[test]
 	fn test_day_range() {
 		let (_, res) = day_range(CompleteStr("Di – Do")).unwrap();
-		assert_eq!(res.days.len(), 3);
+		assert_eq!(res, vec![Day::Di, Day::Mi, Day::Do]);
+	}
+
+	#[test]
+	fn test_day_list() {
+		let (_, res) = day_list(CompleteStr("Mo, Mi – Fr")).unwrap();
+		assert_eq!(res, vec![Day::Mo, Day::Mi, Day::Do, Day::Fr]);
 	}
 
 	#[test]
