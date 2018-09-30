@@ -102,7 +102,7 @@ struct Time {
 	clock: Clock,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct OfficeHour {
 	day: Day,
 	begin: Clock,
@@ -114,7 +114,7 @@ impl OfficeHour {
 		OfficeHour { day, begin, end }
 	}
 
-	fn contains(&self, time: Time) -> bool {
+	fn contains(&self, time: &Time) -> bool {
 		let same_day = self.day == time.day;
 		let after_begin = self.begin <= time.clock;
 		let before_end = self.end > time.clock;
@@ -124,6 +124,16 @@ impl OfficeHour {
 
 struct OfficeHours {
 	data: Vec<OfficeHour>,
+}
+
+impl OfficeHours {
+	fn filter_time(&self, time: &Time) -> OfficeHours {
+		let mut data = Vec::<OfficeHour>::new();
+		for oh in self.data.iter().filter(|oh| oh.contains(&time)) {
+			data.push(oh.clone());
+		}
+		OfficeHours { data }
+	}
 }
 
 #[cfg(test)]
