@@ -11,6 +11,8 @@ extern crate nom;
 
 mod hrdb;
 
+use std::cmp::{Ord, Ordering};
+
 #[derive(Debug)]
 pub struct Office {
 	names: Vec<String>,
@@ -73,6 +75,24 @@ impl Clock {
 		assert!(hours <= 23);
 		assert!(minutes <= 59);
 		Clock { hours, minutes }
+	}
+}
+
+impl PartialOrd for Clock {
+    fn partial_cmp(&self, other: &Clock) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Clock {
+	fn cmp(&self, other: &Clock) -> Ordering {
+		if self.hours < other.hours {
+			Ordering::Less
+		} else if self.hours > other.hours {
+			Ordering::Greater
+		} else {
+			self.minutes.cmp(&other.minutes)
+		}
 	}
 }
 
