@@ -11,8 +11,6 @@ extern crate nom;
 
 mod hrdb;
 
-use std::collections::HashSet;
-
 #[derive(Debug)]
 pub struct Office {
 	names: Vec<String>,
