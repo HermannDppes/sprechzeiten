@@ -1,4 +1,6 @@
+sudo: required
 language: rust
+
 rust:
   - stable
   - beta
@@ -8,8 +10,25 @@ matrix:
     - rust: nightly
   fast_finish: true
 
+# Dependencies of kcov, used by coverage
+addons:
+  apt:
+    packages:
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+      - binutils-dev
+      - cmake # also required for cargo-update
+    sources:
+      - kalakris-cmake
+
+cache: cargo
+
 before_script:
-  - cargo install cargo-travis
+  - export PATH=$HOME/.cargo/bin:$PATH
+  - cargo install cargo-update || echo "cargo-update already installed"
+  - cargo install cargo-travis || echo "cargo-travis already installed"
+  - cargo install-update -a # update outdated cached binaries
 
 after_script:
   - cargo coveralls
