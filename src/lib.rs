@@ -79,9 +79,9 @@ impl Clock {
 }
 
 impl PartialOrd for Clock {
-    fn partial_cmp(&self, other: &Clock) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
+	fn partial_cmp(&self, other: &Clock) -> Option<Ordering> {
+		Some(self.cmp(other))
+	}
 }
 
 impl Ord for Clock {
