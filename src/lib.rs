@@ -113,6 +113,13 @@ impl TimeRange {
 	fn new(day: Day, begin: Clock, end: Clock) -> TimeRange {
 		TimeRange { day, begin, end }
 	}
+
+	fn contains(&self, time: Time) -> bool {
+		let same_day = self.day == time.day;
+		let after_begin = self.begin <= time.clock;
+		let before_end = self.end > time.clock;
+		same_day && after_begin && before_end
+	}
 }
 
 #[cfg(test)]
