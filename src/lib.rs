@@ -77,6 +77,12 @@ impl Clock {
 }
 
 #[derive(Debug)]
+struct Time {
+	day: Day,
+	clock: Clock,
+}
+
+#[derive(Debug)]
 struct TimeRange {
 	day: Day,
 	begin: Clock,
