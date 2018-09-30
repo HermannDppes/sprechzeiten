@@ -7,3 +7,9 @@ matrix:
   allow_failures:
     - rust: nightly
   fast_finish: true
+
+before_script:
+  - cargo install cargo-travis
+
+after_script:
+  - cargo coveralls
