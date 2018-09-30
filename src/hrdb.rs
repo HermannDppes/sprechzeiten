@@ -81,16 +81,16 @@ named!(small_number<CompleteStr, u8>,
 	map!(nom::digit, |str| FromStr::from_str(&str).unwrap())
 );
 
-named!(time<CompleteStr, Time>,
+named!(time<CompleteStr, Clock>,
 	do_parse!(
 		hours: small_number >>
 		tag!(":") >>
 		minutes: small_number >>
-		(Time::new(hours, minutes))
+		(Clock::new(hours, minutes))
 	)
 );
 
-named!(time_pair<CompleteStr, (Time, Time)>,
+named!(time_pair<CompleteStr, (Clock, Clock)>,
 	do_parse!(
 		begin: time >>
 		tag!(" – ") >>
@@ -101,7 +101,7 @@ named!(time_pair<CompleteStr, (Time, Time)>,
 
 fn ranges_from_days_times(
 	days: Vec<Day>,
-	times: Vec<(Time, Time)>,
+	times: Vec<(Clock, Clock)>,
 ) -> Vec<TimeRange> {
 	let mut ranges = Vec::with_capacity(days.len() * times.len());
 	for day in days {
@@ -208,6 +208,6 @@ mod tests {
 	#[test]
 	fn test_time() {
 		let (_, res) = time(CompleteStr("10:38")).unwrap();
-		assert_eq!(res, Time::new(10, 38));
+		assert_eq!(res, Clock::new(10, 38));
 	}
 }

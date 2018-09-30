@@ -63,28 +63,28 @@ impl Day {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct Time {
+struct Clock {
 	hours: u8,
 	minutes: u8,
 }
 
-impl Time {
-	fn new(hours: u8, minutes: u8) -> Time {
+impl Clock {
+	fn new(hours: u8, minutes: u8) -> Clock {
 		assert!(hours <= 23);
 		assert!(minutes <= 59);
-		Time { hours, minutes }
+		Clock { hours, minutes }
 	}
 }
 
 #[derive(Debug)]
 struct TimeRange {
 	day: Day,
-	begin: Time,
-	end: Time,
+	begin: Clock,
+	end: Clock,
 }
 
 impl TimeRange {
-	fn new(day: Day, begin: Time, end: Time) -> TimeRange {
+	fn new(day: Day, begin: Clock, end: Clock) -> TimeRange {
 		TimeRange { day, begin, end }
 	}
 }
@@ -105,10 +105,10 @@ mod tests {
 	}
 
 	#[test]
-	fn time_works() {
+	fn clock_works() {
 		assert_eq!(
-			Time::new(11, 23),
-			Time {
+			Clock::new(11, 23),
+			Clock {
 				hours: 11,
 				minutes: 23
 			}
@@ -117,13 +117,13 @@ mod tests {
 
 	#[test]
 	#[should_panic]
-	fn time_fail_hours() {
-		Time::new(24, 13);
+	fn clock_fail_hours() {
+		Clock::new(24, 13);
 	}
 
 	#[test]
 	#[should_panic]
-	fn time_fail_minutes() {
-		Time::new(20, 60);
+	fn clock_fail_minutes() {
+		Clock::new(20, 60);
 	}
 }
