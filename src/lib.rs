@@ -122,6 +122,10 @@ impl OfficeHour {
 	}
 }
 
+struct OfficeHours {
+	data: Vec<OfficeHour>,
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
