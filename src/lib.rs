@@ -17,7 +17,7 @@ use std::cmp::{Ord, Ordering};
 pub struct Office {
 	names: Vec<String>,
 	phones: Vec<String>,
-	times: Vec<TimeRange>,
+	times: Vec<OfficeHour>,
 	comments: Vec<String>,
 }
 
@@ -33,7 +33,7 @@ impl Office {
 		}
 	}
 
-	fn add_times(&mut self, mut new_times: Vec<TimeRange>) {
+	fn add_times(&mut self, mut new_times: Vec<OfficeHour>) {
 		self.times.append(&mut new_times);
 	}
 
@@ -103,15 +103,15 @@ struct Time {
 }
 
 #[derive(Debug)]
-struct TimeRange {
+struct OfficeHour {
 	day: Day,
 	begin: Clock,
 	end: Clock,
 }
 
-impl TimeRange {
-	fn new(day: Day, begin: Clock, end: Clock) -> TimeRange {
-		TimeRange { day, begin, end }
+impl OfficeHour {
+	fn new(day: Day, begin: Clock, end: Clock) -> OfficeHour {
+		OfficeHour { day, begin, end }
 	}
 
 	fn contains(&self, time: Time) -> bool {

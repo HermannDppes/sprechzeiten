@@ -102,11 +102,11 @@ named!(time_pair<CompleteStr, (Clock, Clock)>,
 fn ranges_from_days_times(
 	days: Vec<Day>,
 	times: Vec<(Clock, Clock)>,
-) -> Vec<TimeRange> {
+) -> Vec<OfficeHour> {
 	let mut ranges = Vec::with_capacity(days.len() * times.len());
 	for day in days {
 		for (begin, end) in &times {
-			ranges.push(TimeRange::new(
+			ranges.push(OfficeHour::new(
 				day.clone(),
 				begin.clone(),
 				end.clone(),
