@@ -5,10 +5,6 @@ use super::*;
 
 use std::str::FromStr;
 
-fn stringify(str: CompleteStr) -> String {
-	String::from(str.as_ref())
-}
-
 named!(names<CompleteStr, Names>,
 	map!(
 		separated_list!(tag!(", "), map!(is_not!(",\n"), Name::from)),
@@ -16,8 +12,12 @@ named!(names<CompleteStr, Names>,
 	)
 );
 
-named!(phone_numbers<CompleteStr, Vec<String>>,
-	separated_list!(tag!(", "), map!(nom::digit, stringify))
+named!(phone_number<CompleteStr, Phone>,
+	map!(nom::digit, |s| Phone::from_str(&s.as_ref()).unwrap())
+);
+
+named!(phone_numbers<CompleteStr, Phones>,
+	map!(separated_list!(tag!(", "), phone_number), Phones::from)
 );
 
 named!(day<CompleteStr, Day>,

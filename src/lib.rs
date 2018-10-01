@@ -12,6 +12,7 @@ extern crate nom;
 mod hrdb;
 
 use std::cmp::{Ord, Ordering};
+use std::str::FromStr;
 
 #[derive(Debug, Clone)]
 struct Name {
@@ -36,16 +37,50 @@ impl From<Vec<Name>> for Names {
 	}
 }
 
+#[derive(Debug, Clone)]
+struct Phone {
+	data: String,
+}
+
+#[derive(Debug)]
+enum PhoneErr {
+	InvalidChar,
+}
+
+impl FromStr for Phone {
+	type Err = PhoneErr;
+
+	fn from_str(src: &str) -> Result<Phone, Self::Err> {
+		if src.chars().all(|c| c.is_digit(10)) {
+			let data = String::from(src);
+			Ok(Phone { data })
+		} else {
+			Err(PhoneErr::InvalidChar)
+		}
+	}
+}
+
+#[derive(Debug, Clone)]
+struct Phones {
+	data: Vec<Phone>,
+}
+
+impl From<Vec<Phone>> for Phones {
+	fn from(data: Vec<Phone>) -> Phones {
+		Phones { data }
+	}
+}
+
 #[derive(Debug)]
 pub struct Office {
 	names: Names,
-	phones: Vec<String>,
+	phones: Phones,
 	times: OfficeHours,
 	comments: Vec<String>,
 }
 
 impl Office {
-	fn new(names: Names, phones: Vec<String>) -> Office {
+	fn new(names: Names, phones: Phones) -> Office {
 		let times = OfficeHours { data: Vec::new() };
 		let comments = Vec::new();
 		Office {
