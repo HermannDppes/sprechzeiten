@@ -40,6 +40,23 @@ impl Office {
 	fn add_comment(&mut self, comment: String) {
 		self.comments.push(comment);
 	}
+
+	fn filter_time(&self, time: Time) -> Option<Office> {
+		let names = self.names.clone();
+		let phones = self.phones.clone();
+		let maybe_times = self.times.filter_time(&time);
+		let comments = self.comments.clone();
+		if let Some(times) = maybe_times {
+			Some(Office {
+				names,
+				phones,
+				times,
+				comments,
+			})
+		} else {
+			None
+		}
+	}
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -128,12 +145,16 @@ struct OfficeHours {
 }
 
 impl OfficeHours {
-	fn filter_time(&self, time: &Time) -> OfficeHours {
+	fn filter_time(&self, time: &Time) -> Option<OfficeHours> {
 		let mut data = Vec::<OfficeHour>::new();
 		for oh in self.data.iter().filter(|oh| oh.contains(&time)) {
 			data.push(oh.clone());
 		}
-		OfficeHours { data }
+		if data.len() > 0 {
+			Some(OfficeHours { data })
+		} else {
+			None
+		}
 	}
 }
 
