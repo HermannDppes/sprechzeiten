@@ -17,13 +17,13 @@ use std::cmp::{Ord, Ordering};
 pub struct Office {
 	names: Vec<String>,
 	phones: Vec<String>,
-	times: Vec<OfficeHour>,
+	times: OfficeHours,
 	comments: Vec<String>,
 }
 
 impl Office {
 	fn new(names: Vec<String>, phones: Vec<String>) -> Office {
-		let times = Vec::new();
+		let times = OfficeHours { data: Vec::new() };
 		let comments = Vec::new();
 		Office {
 			names,
@@ -34,7 +34,7 @@ impl Office {
 	}
 
 	fn add_times(&mut self, mut new_times: Vec<OfficeHour>) {
-		self.times.append(&mut new_times);
+		self.times.data.append(&mut new_times);
 	}
 
 	fn add_comment(&mut self, comment: String) {
@@ -122,6 +122,7 @@ impl OfficeHour {
 	}
 }
 
+#[derive(Debug)]
 struct OfficeHours {
 	data: Vec<OfficeHour>,
 }
