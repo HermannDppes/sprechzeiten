@@ -6,7 +6,7 @@ use super::*;
 use std::str::FromStr;
 
 fn stringify(str: CompleteStr) -> String {
-	String::from_str(str.as_ref()).unwrap()
+	String::from(str.as_ref())
 }
 
 named!(names<CompleteStr, Vec<String>>,
