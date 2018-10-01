@@ -9,8 +9,11 @@ fn stringify(str: CompleteStr) -> String {
 	String::from(str.as_ref())
 }
 
-named!(names<CompleteStr, Vec<String>>,
-	separated_list!(tag!(", "), map!(is_not!(",\n"), stringify))
+named!(names<CompleteStr, Names>,
+	map!(
+		separated_list!(tag!(", "), map!(is_not!(",\n"), Name::from)),
+		Names::from
+	)
 );
 
 named!(phone_numbers<CompleteStr, Vec<String>>,

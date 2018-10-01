@@ -13,16 +13,39 @@ mod hrdb;
 
 use std::cmp::{Ord, Ordering};
 
+#[derive(Debug, Clone)]
+struct Name {
+	data: String,
+}
+
+impl<'a> From<nom::types::CompleteStr<'a>> for Name {
+	fn from(str: nom::types::CompleteStr<'a>) -> Name {
+		let data = String::from(str.as_ref());
+		Name { data }
+	}
+}
+
+#[derive(Debug, Clone)]
+struct Names {
+	data: Vec<Name>,
+}
+
+impl From<Vec<Name>> for Names {
+	fn from(data: Vec<Name>) -> Names {
+		Names { data }
+	}
+}
+
 #[derive(Debug)]
 pub struct Office {
-	names: Vec<String>,
+	names: Names,
 	phones: Vec<String>,
 	times: OfficeHours,
 	comments: Vec<String>,
 }
 
 impl Office {
-	fn new(names: Vec<String>, phones: Vec<String>) -> Office {
+	fn new(names: Names, phones: Vec<String>) -> Office {
 		let times = OfficeHours { data: Vec::new() };
 		let comments = Vec::new();
 		Office {
