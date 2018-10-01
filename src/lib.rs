@@ -41,7 +41,7 @@ impl Office {
 		self.comments.push(comment);
 	}
 
-	fn filter_time(&self, time: Time) -> Option<Office> {
+	fn filter_time(&self, time: &Time) -> Option<Office> {
 		let names = self.names.clone();
 		let phones = self.phones.clone();
 		let maybe_times = self.times.filter_time(&time);
@@ -56,6 +56,22 @@ impl Office {
 		} else {
 			None
 		}
+	}
+}
+
+pub struct Offices {
+	data: Vec<Office>,
+}
+
+impl Offices {
+	fn filter_time(&self, time: &Time) -> Offices {
+		let mut data = Vec::new();
+		for office in &self.data {
+			if let Some(office) = office.filter_time(&time) {
+				data.push(office);
+			}
+		}
+		Offices { data }
 	}
 }
 
