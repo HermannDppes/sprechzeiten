@@ -132,8 +132,8 @@ named_args!(add_times<'a>(office: &mut Office) <CompleteStr<'a>, ()>,
 named_args!(add_comment<'a>(office: &mut Office) <CompleteStr<'a>, ()>,
 	do_parse!(
 		tag!("\n") >>
-		comment: is_not!("\n") >>
-		(office.add_comment(String::from_str(comment.as_ref()).unwrap()))
+		comment: map!(is_not!("\n"), Comment::from) >>
+		(office.add_comment(comment))
 	)
 );
 

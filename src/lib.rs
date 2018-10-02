@@ -71,18 +71,47 @@ impl From<Vec<Phone>> for Phones {
 	}
 }
 
+#[derive(Debug, Clone)]
+struct Comment {
+	data: String,
+}
+
+impl<'a> From<nom::types::CompleteStr<'a>> for Comment {
+	fn from(src: nom::types::CompleteStr<'a>) -> Comment {
+		let data = String::from(src.as_ref());
+		Comment { data }
+	}
+}
+
+#[derive(Debug, Clone)]
+struct Comments {
+	data: Vec<Comment>,
+}
+
+impl From<Vec<Comment>> for Comments {
+	fn from(data: Vec<Comment>) -> Comments {
+		Comments { data }
+	}
+}
+
+impl Comments {
+	fn push(&mut self, comment: Comment) {
+		self.data.push(comment)
+	}
+}
+
 #[derive(Debug)]
 pub struct Office {
 	names: Names,
 	phones: Phones,
 	times: OfficeHours,
-	comments: Vec<String>,
+	comments: Comments,
 }
 
 impl Office {
 	fn new(names: Names, phones: Phones) -> Office {
 		let times = OfficeHours { data: Vec::new() };
-		let comments = Vec::new();
+		let comments = Comments { data: Vec::new() };
 		Office {
 			names,
 			phones,
@@ -95,7 +124,7 @@ impl Office {
 		self.times.data.append(&mut new_times);
 	}
 
-	fn add_comment(&mut self, comment: String) {
+	fn add_comment(&mut self, comment: Comment) {
 		self.comments.push(comment);
 	}
 
