@@ -19,8 +19,8 @@ struct Name {
 	data: String,
 }
 
-impl<'a> From<nom::types::CompleteStr<'a>> for Name {
-	fn from(str: nom::types::CompleteStr<'a>) -> Name {
+impl<T: AsRef<str>> From<T> for Name {
+	fn from(str: T) -> Name {
 		let data = String::from(str.as_ref());
 		Name { data }
 	}
@@ -76,8 +76,8 @@ struct Comment {
 	data: String,
 }
 
-impl<'a> From<nom::types::CompleteStr<'a>> for Comment {
-	fn from(src: nom::types::CompleteStr<'a>) -> Comment {
+impl<T: AsRef<str>> From<T> for Comment {
+	fn from(src: T) -> Comment {
 		let data = String::from(src.as_ref());
 		Comment { data }
 	}
