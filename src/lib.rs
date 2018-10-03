@@ -14,7 +14,9 @@ mod hrdb;
 use std::cmp::{Ord, Ordering};
 use std::str::FromStr;
 
-#[derive(Debug, Clone)]
+use std::fmt;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct Name {
 	data: String,
 }
@@ -26,6 +28,12 @@ impl<T: AsRef<str>> From<T> for Name {
 	}
 }
 
+impl fmt::Display for Name {
+	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+		write!(fmt, "{}", self.data)
+	}
+}
+
 #[derive(Debug, Clone)]
 struct Names {
 	data: Vec<Name>,
@@ -34,6 +42,25 @@ struct Names {
 impl From<Vec<Name>> for Names {
 	fn from(data: Vec<Name>) -> Names {
 		Names { data }
+	}
+}
+
+impl fmt::Display for Names {
+	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+		let mut iter = self.data.iter().peekable();
+		if None == iter.peek() {
+			write!(fmt, "")
+		} else {
+			loop {
+				// This cannot panic! due to the peeks
+				let next = iter.next().unwrap();
+				let res = write!(fmt, "{}", next);
+				if None == iter.peek() {
+					break res;
+				}
+				write!(fmt, ", ");
+			}
+		}
 	}
 }
 
