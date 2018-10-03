@@ -16,7 +16,25 @@ use std::str::FromStr;
 
 use std::fmt;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+fn display_simple_list<T: IntoIterator>(lst: T, fmt: &mut fmt::Formatter) -> fmt::Result
+	where <T as IntoIterator>::Item: fmt::Display {
+		let mut iter = lst.into_iter().peekable();
+		if iter.peek().is_none() {
+			write!(fmt, "")
+		} else {
+			loop {
+				// This cannot panic! due to the peeks
+				let next = iter.next().unwrap();
+				let res = write!(fmt, "{}", next);
+				if iter.peek().is_none() {
+					break res;
+				}
+				write!(fmt, ", ");
+			}
+		}
+}
+
+#[derive(Debug, Clone)]
 struct Name {
 	data: String,
 }
@@ -47,24 +65,11 @@ impl From<Vec<Name>> for Names {
 
 impl fmt::Display for Names {
 	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-		let mut iter = self.data.iter().peekable();
-		if None == iter.peek() {
-			write!(fmt, "")
-		} else {
-			loop {
-				// This cannot panic! due to the peeks
-				let next = iter.next().unwrap();
-				let res = write!(fmt, "{}", next);
-				if None == iter.peek() {
-					break res;
-				}
-				write!(fmt, ", ");
-			}
-		}
+		display_simple_list(&self.data, fmt)
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 struct Phone {
 	data: String,
 }
@@ -106,20 +111,7 @@ impl From<Vec<Phone>> for Phones {
 
 impl fmt::Display for Phones {
 	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-		let mut iter = self.data.iter().peekable();
-		if None == iter.peek() {
-			write!(fmt, "")
-		} else {
-			loop {
-				// This cannot panic! due to the peeks
-				let next = iter.next().unwrap();
-				let res = write!(fmt, "{}", next);
-				if None == iter.peek() {
-					break res;
-				}
-				write!(fmt, ", ");
-			}
-		}
+		display_simple_list(&self.data, fmt)
 	}
 }
 
