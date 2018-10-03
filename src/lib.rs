@@ -16,22 +16,27 @@ use std::str::FromStr;
 
 use std::fmt;
 
-fn display_simple_list<T: IntoIterator>(lst: T, fmt: &mut fmt::Formatter) -> fmt::Result
-	where <T as IntoIterator>::Item: fmt::Display {
-		let mut iter = lst.into_iter().peekable();
-		if iter.peek().is_none() {
-			write!(fmt, "")
-		} else {
-			loop {
-				// This cannot panic! due to the peeks
-				let next = iter.next().unwrap();
-				let res = write!(fmt, "{}", next);
-				if iter.peek().is_none() {
-					break res;
-				}
-				write!(fmt, ", ");
+fn display_simple_list<T: IntoIterator>(
+	lst: T,
+	fmt: &mut fmt::Formatter,
+) -> fmt::Result
+where
+	<T as IntoIterator>::Item: fmt::Display,
+{
+	let mut iter = lst.into_iter().peekable();
+	if iter.peek().is_none() {
+		write!(fmt, "")
+	} else {
+		loop {
+			// This cannot panic! due to the peeks
+			let next = iter.next().unwrap();
+			let res = write!(fmt, "{}", next);
+			if iter.peek().is_none() {
+				break res;
 			}
+			write!(fmt, ", ");
 		}
+	}
 }
 
 #[derive(Debug, Clone)]
