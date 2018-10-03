@@ -64,7 +64,7 @@ impl fmt::Display for Names {
 	}
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct Phone {
 	data: String,
 }
@@ -87,6 +87,12 @@ impl FromStr for Phone {
 	}
 }
 
+impl fmt::Display for Phone {
+	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+		write!(fmt, "{}", self.data)
+	}
+}
+
 #[derive(Debug, Clone)]
 struct Phones {
 	data: Vec<Phone>,
@@ -95,6 +101,25 @@ struct Phones {
 impl From<Vec<Phone>> for Phones {
 	fn from(data: Vec<Phone>) -> Phones {
 		Phones { data }
+	}
+}
+
+impl fmt::Display for Phones {
+	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+		let mut iter = self.data.iter().peekable();
+		if None == iter.peek() {
+			write!(fmt, "")
+		} else {
+			loop {
+				// This cannot panic! due to the peeks
+				let next = iter.next().unwrap();
+				let res = write!(fmt, "{}", next);
+				if None == iter.peek() {
+					break res;
+				}
+				write!(fmt, ", ");
+			}
+		}
 	}
 }
 
