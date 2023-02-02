@@ -2,6 +2,7 @@ use nom;
 use nom::types::CompleteStr;
 
 use super::*;
+use super::time::{Day, Clock, OfficeHour};
 
 use std::str::FromStr;
 
