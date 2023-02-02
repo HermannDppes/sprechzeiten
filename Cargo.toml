@@ -4,4 +4,4 @@ version = "0.1.0"
 authors = ["Hermann Döppes <hermannd.ouml.ppes@gmail.com>"]
 
 [dependencies]
-nom = {version = "^5.0"}
+nom = {version = "^6.0"}

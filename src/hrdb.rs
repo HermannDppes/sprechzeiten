@@ -7,7 +7,7 @@ use std::str::FromStr;
 
 named!(names<&str, Names>,
 	map!(
-		separated_list!(tag!(", "), map!(is_not!(",\n"), Name::from)),
+		separated_list1!(tag!(", "), map!(is_not!(",\n"), Name::from)),
 		Names::from
 	)
 );
@@ -17,7 +17,7 @@ named!(phone_number<&str, Phone>,
 );
 
 named!(phone_numbers<&str, Phones>,
-	map!(separated_list!(tag!(", "), phone_number), Phones::from)
+	map!(separated_list0!(tag!(", "), phone_number), Phones::from)
 );
 
 named!(day<&str, Day>,
@@ -132,7 +132,7 @@ named_args!(add_times<'a>(office: &mut Office) <&'a str, ()>,
 		tag!("\n") >>
 		days: days >>
 		tag!(": ") >>
-		times: separated_list!(tag!(", "), time_pair) >>
+		times: separated_list1!(tag!(", "), time_pair) >>
 		(office.add_times(ranges_from_days_times(days, times)))
 	)
 );
@@ -156,7 +156,7 @@ fn add_info<'a>(
 	} else {
 		use nom::*;
 		// FIXME: `ErrorKind::Tag` is not the correct error
-		Err(Err::Error((input, nom::error::ErrorKind::Tag)))
+		Err(Err::Error(nom::error::Error { input, code: nom::error::ErrorKind::Tag}))
 	}
 }
 
@@ -183,7 +183,7 @@ fn office(input: &str) -> nom::IResult<&str, Office> {
 }
 
 named!(pub offices<&str, Vec<Office>>,
-	separated_list!(tag!("\n\n"), office)
+	separated_list0!(tag!("\n\n"), office)
 );
 
 #[cfg(test)]
