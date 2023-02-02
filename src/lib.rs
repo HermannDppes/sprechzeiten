@@ -1,8 +1,8 @@
 pub fn process(str: &str) -> &str {
 	let (input, offices) =
-		hrdb::offices(nom::types::CompleteStr(str)).unwrap();
+		hrdb::offices(str).unwrap();
 	println!("{:?}", offices);
-	println!("{}", input.as_ref());
+	println!("{}", input);
 	""
 }
 
@@ -12,7 +12,6 @@ extern crate nom;
 mod hrdb;
 mod time;
 
-use std::cmp::{Ord, Ordering};
 use std::str::FromStr;
 
 use std::fmt;

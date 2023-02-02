@@ -1,27 +1,26 @@
 use nom;
-use nom::types::CompleteStr;
 
 use super::*;
 use super::time::{Day, Clock, OfficeHour};
 
 use std::str::FromStr;
 
-named!(names<CompleteStr, Names>,
+named!(names<&str, Names>,
 	map!(
 		separated_list!(tag!(", "), map!(is_not!(",\n"), Name::from)),
 		Names::from
 	)
 );
 
-named!(phone_number<CompleteStr, Phone>,
-	map!(nom::digit, |s| Phone::from_str(&s.as_ref()).unwrap())
+named!(phone_number<&str, Phone>,
+	map!(nom::character::complete::digit1, |s| Phone::from_str(&s.as_ref()).unwrap())
 );
 
-named!(phone_numbers<CompleteStr, Phones>,
+named!(phone_numbers<&str, Phones>,
 	map!(separated_list!(tag!(", "), phone_number), Phones::from)
 );
 
-named!(day<CompleteStr, Day>,
+named!(day<&str, Day>,
 	alt!(
 		value!(Day::Mo, tag!("Mo")) |
 		value!(Day::Di, tag!("Di")) |
@@ -47,7 +46,7 @@ fn days_from_range(begin: Day, end: Day) -> Vec<Day> {
 	days
 }
 
-named!(day_range<CompleteStr, Vec<Day>>,
+named!(day_range<&str, Vec<Day>>,
 	do_parse!(
 		begin: day >>
 		tag!(" – ") >>
@@ -56,7 +55,7 @@ named!(day_range<CompleteStr, Vec<Day>>,
 	)
 );
 
-named!(day_list_elem<CompleteStr, Vec<Day>>,
+named!(day_list_elem<&str, Vec<Day>>,
 	alt!(day_range | map!(day, single_day))
 );
 
@@ -65,11 +64,19 @@ fn merge_days(mut a: Vec<Day>, mut b: Vec<Day>) -> Vec<Day> {
 	a
 }
 
-named!(day_list<CompleteStr, Vec<Day>>,
+named!(day_list_continuation<&str, Vec<Day>>,
+	do_parse!(
+		tag!(", ") >>
+		e: day_list_elem >>
+		(e)
+	)
+);
+
+named!(day_list<&str, Vec<Day>>,
 	do_parse!(
 		first: day_list_elem >>
 		days: fold_many0!(
-			do_parse!(tag!(", ") >> e: day_list_elem >> (e)),
+			day_list_continuation,
 			first,
 			merge_days
 		) >>
@@ -77,15 +84,15 @@ named!(day_list<CompleteStr, Vec<Day>>,
 	)
 );
 
-named!(days<CompleteStr, Vec<Day>>,
+named!(days<&str, Vec<Day>>,
 	alt!(value!(days_from_range(Day::Mo, Day::Fr), tag!("Tgl")) | day_list)
 );
 
-named!(small_number<CompleteStr, u8>,
-	map!(nom::digit, |str| FromStr::from_str(&str).unwrap())
+named!(small_number<&str, u8>,
+	map!(nom::character::complete::digit1, |str| FromStr::from_str(&str).unwrap())
 );
 
-named!(time<CompleteStr, Clock>,
+named!(time<&str, Clock>,
 	do_parse!(
 		hours: small_number >>
 		tag!(":") >>
@@ -94,7 +101,7 @@ named!(time<CompleteStr, Clock>,
 	)
 );
 
-named!(time_pair<CompleteStr, (Clock, Clock)>,
+named!(time_pair<&str, (Clock, Clock)>,
 	do_parse!(
 		begin: time >>
 		tag!(" – ") >>
@@ -120,7 +127,7 @@ fn ranges_from_days_times(
 	ranges
 }
 
-named_args!(add_times<'a>(office: &mut Office) <CompleteStr<'a>, ()>,
+named_args!(add_times<'a>(office: &mut Office) <&'a str, ()>,
 	do_parse!(
 		tag!("\n") >>
 		days: days >>
@@ -130,7 +137,7 @@ named_args!(add_times<'a>(office: &mut Office) <CompleteStr<'a>, ()>,
 	)
 );
 
-named_args!(add_comment<'a>(office: &mut Office) <CompleteStr<'a>, ()>,
+named_args!(add_comment<'a>(office: &mut Office) <&'a str, ()>,
 	do_parse!(
 		tag!("\n") >>
 		comment: map!(is_not!("\n"), Comment::from) >>
@@ -139,20 +146,21 @@ named_args!(add_comment<'a>(office: &mut Office) <CompleteStr<'a>, ()>,
 );
 
 fn add_info<'a>(
-	input: CompleteStr<'a>,
+	input: &'a str,
 	office: &mut Office,
-) -> nom::IResult<CompleteStr<'a>, ()> {
+) -> nom::IResult<&'a str, ()> {
 	if let Ok((rest, _)) = add_times(input, office) {
 		Ok((rest, ()))
 	} else if let Ok((rest, _)) = add_comment(input, office) {
 		Ok((rest, ()))
 	} else {
 		use nom::*;
-		Err(Err::Error(Context::Code(input, ErrorKind::Custom(0))))
+		// FIXME: `ErrorKind::Tag` is not the correct error
+		Err(Err::Error((input, nom::error::ErrorKind::Tag)))
 	}
 }
 
-named!(base_office<CompleteStr, Office>,
+named!(base_office<&str, Office>,
 	do_parse!(
 		names: names >>
 		tag!("\n") >>
@@ -161,7 +169,7 @@ named!(base_office<CompleteStr, Office>,
 	)
 );
 
-fn office(input: CompleteStr) -> nom::IResult<CompleteStr, Office> {
+fn office(input: &str) -> nom::IResult<&str, Office> {
 	let (mut input, mut office) = base_office(input).unwrap();
 	loop {
 		let res = add_info(input, &mut office);
@@ -174,7 +182,7 @@ fn office(input: CompleteStr) -> nom::IResult<CompleteStr, Office> {
 	Ok((input, office))
 }
 
-named!(pub offices<CompleteStr, Vec<Office>>,
+named!(pub offices<&str, Vec<Office>>,
 	separated_list!(tag!("\n\n"), office)
 );
 
@@ -184,25 +192,25 @@ mod tests {
 
 	#[test]
 	fn test_day() {
-		let (_, res) = day(CompleteStr("Mo")).unwrap();
+		let (_, res) = day("Mo").unwrap();
 		assert_eq!(res, Day::Mo);
 	}
 
 	#[test]
 	fn test_day_range() {
-		let (_, res) = day_range(CompleteStr("Di – Do")).unwrap();
+		let (_, res) = day_range("Di – Do").unwrap();
 		assert_eq!(res, vec![Day::Di, Day::Mi, Day::Do]);
 	}
 
 	#[test]
 	fn test_day_list() {
-		let (_, res) = day_list(CompleteStr("Mo, Mi – Fr")).unwrap();
+		let (_, res) = day_list("Mo, Mi – Fr").unwrap();
 		assert_eq!(res, vec![Day::Mo, Day::Mi, Day::Do, Day::Fr]);
 	}
 
 	#[test]
 	fn test_days() {
-		let (_, res) = days(CompleteStr("Tgl")).unwrap();
+		let (_, res) = days("Tgl").unwrap();
 		assert_eq!(
 			res,
 			vec![Day::Mo, Day::Di, Day::Mi, Day::Do, Day::Fr]
@@ -211,7 +219,7 @@ mod tests {
 
 	#[test]
 	fn test_time() {
-		let (_, res) = time(CompleteStr("10:38")).unwrap();
+		let (_, res) = time("10:38").unwrap();
 		assert_eq!(res, Clock::new(10, 38));
 	}
 }
