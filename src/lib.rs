@@ -1,6 +1,5 @@
 pub fn process(str: &str) -> &str {
-	let (input, offices) =
-		hrdb::offices(str).unwrap();
+	let (input, offices) = hrdb::offices(str).unwrap();
 	println!("{:?}", offices);
 	println!("{}", input);
 	""

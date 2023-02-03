@@ -24,8 +24,8 @@
 use nom;
 use nom::IResult;
 
+use super::time::{Clock, Day, OfficeHour};
 use super::*;
-use super::time::{Day, Clock, OfficeHour};
 
 use std::str::FromStr;
 
@@ -35,17 +35,17 @@ fn names(input: &str) -> IResult<&str, Names> {
 			nom::bytes::complete::tag(", "),
 			nom::combinator::map(
 				nom::bytes::complete::is_not(",\n"),
-				Name::from
-			)
+				Name::from,
+			),
 		),
-		Names::from
+		Names::from,
 	)(input)
 }
 
 fn phone_number(input: &str) -> IResult<&str, Phone> {
 	nom::combinator::map(
 		nom::character::complete::digit1,
-		|s: &str| Phone::from_str(&s.as_ref()).unwrap()
+		|s: &str| Phone::from_str(&s.as_ref()).unwrap(),
 	)(input)
 }
 
@@ -53,19 +53,34 @@ fn phone_numbers(input: &str) -> IResult<&str, Phones> {
 	nom::combinator::map(
 		nom::multi::separated_list0(
 			nom::bytes::complete::tag(", "),
-			phone_number
+			phone_number,
 		),
-		Phones::from
+		Phones::from,
 	)(input)
 }
 
 fn day(input: &str) -> IResult<&str, Day> {
 	nom::branch::alt((
-		nom::combinator::value(Day::Mo, nom::bytes::complete::tag("Mo")),
-		nom::combinator::value(Day::Di, nom::bytes::complete::tag("Di")),
-		nom::combinator::value(Day::Mi, nom::bytes::complete::tag("Mi")),
-		nom::combinator::value(Day::Do, nom::bytes::complete::tag("Do")),
-		nom::combinator::value(Day::Fr, nom::bytes::complete::tag("Fr"))
+		nom::combinator::value(
+			Day::Mo,
+			nom::bytes::complete::tag("Mo"),
+		),
+		nom::combinator::value(
+			Day::Di,
+			nom::bytes::complete::tag("Di"),
+		),
+		nom::combinator::value(
+			Day::Mi,
+			nom::bytes::complete::tag("Mi"),
+		),
+		nom::combinator::value(
+			Day::Do,
+			nom::bytes::complete::tag("Do"),
+		),
+		nom::combinator::value(
+			Day::Fr,
+			nom::bytes::complete::tag("Fr"),
+		),
 	))(input)
 }
 
@@ -95,7 +110,7 @@ fn day_range(input: &str) -> IResult<&str, Vec<Day>> {
 fn day_list_elem(input: &str) -> IResult<&str, Vec<Day>> {
 	nom::branch::alt((
 		day_range,
-		nom::combinator::map(day, single_day)
+		nom::combinator::map(day, single_day),
 	))(input)
 }
 
@@ -117,7 +132,7 @@ fn day_list(input: &str) -> IResult<&str, Vec<Day>> {
 	let (input, list) = nom::multi::fold_many0(
 		day_list_continuation,
 		|| first.clone(),
-		merge_days
+		merge_days,
 	)(input)?;
 	Ok((input, list))
 }
@@ -125,21 +140,18 @@ fn day_list(input: &str) -> IResult<&str, Vec<Day>> {
 fn daily(input: &str) -> IResult<&str, Vec<Day>> {
 	nom::combinator::value(
 		days_from_range(Day::Mo, Day::Fr),
-		nom::bytes::complete::tag("Tgl")
+		nom::bytes::complete::tag("Tgl"),
 	)(input)
 }
 
 fn days(input: &str) -> IResult<&str, Vec<Day>> {
-	nom::branch::alt((
-		daily,
-		day_list
-	))(input)
+	nom::branch::alt((daily, day_list))(input)
 }
 
 fn small_number(input: &str) -> IResult<&str, u8> {
 	nom::combinator::map(
 		nom::character::complete::digit1,
-		|str: &str| FromStr::from_str(str).unwrap()
+		|str: &str| FromStr::from_str(str).unwrap(),
 	)(input)
 }
 
@@ -155,9 +167,9 @@ fn time_pair(input: &str) -> IResult<&str, (Clock, Clock)> {
 		nom::sequence::tuple((
 			time,
 			nom::bytes::complete::tag(" - "),
-			time
+			time,
 		)),
-		|(a, _, b)| (a, b)
+		|(a, _, b)| (a, b),
 	)(input)
 }
 
@@ -180,7 +192,7 @@ fn ranges_from_days_times(
 
 fn add_times<'a>(
 	input: &'a str,
-	office: &mut Office
+	office: &mut Office,
 ) -> nom::IResult<&'a str, ()> {
 	let (input, (_, days, _, times)) = nom::sequence::tuple((
 		nom::bytes::complete::tag("\n"),
@@ -188,18 +200,21 @@ fn add_times<'a>(
 		nom::bytes::complete::tag(": "),
 		nom::multi::separated_list1(
 			nom::bytes::complete::tag(", "),
-			time_pair
-		)
+			time_pair,
+		),
 	))(input)?;
 	Ok((input, office.add_times(ranges_from_days_times(days, times))))
 }
 
-fn add_comment<'a>(input: &'a str, office: &mut Office) -> IResult<&'a str, ()> {
+fn add_comment<'a>(
+	input: &'a str,
+	office: &mut Office,
+) -> IResult<&'a str, ()> {
 	let (input, _) = nom::bytes::complete::tag("\n")(input)?;
 	let (input, comment) = nom::combinator::map(
 			nom::bytes::complete::is_not("\n"),
-			Comment::from
-	)(input)?;
+			Comment::from,
+		)(input)?;
 	Ok((input, office.add_comment(comment)))
 }
 
@@ -214,7 +229,10 @@ fn add_info<'a>(
 	} else {
 		use nom::*;
 		// FIXME: `ErrorKind::Tag` is not the correct error
-		Err(Err::Error(nom::error::Error { input, code: nom::error::ErrorKind::Tag}))
+		Err(Err::Error(nom::error::Error {
+			input,
+			code: nom::error::ErrorKind::Tag,
+		}))
 	}
 }
 
@@ -222,7 +240,7 @@ fn base_office(input: &str) -> IResult<&str, Office> {
 	let (input, (names, _, phones)) = nom::sequence::tuple((
 		names,
 		nom::bytes::complete::tag("\n"),
-		phone_numbers
+		phone_numbers,
 	))(input)?;
 	Ok((input, Office::new(names, phones)))
 }
@@ -243,7 +261,7 @@ fn office(input: &str) -> IResult<&str, Office> {
 pub fn offices(input: &str) -> IResult<&str, Vec<Office>> {
 	nom::multi::separated_list0(
 		nom::bytes::complete::tag("\n\n"),
-		office
+		office,
 	)(input)
 }
 
