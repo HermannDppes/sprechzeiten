@@ -16,7 +16,7 @@ use std::str::FromStr;
 
 use std::fmt;
 
-use time::{OfficeHour, OfficeHours, Time};
+use crate::time::{OfficeHour, OfficeHours, Time};
 
 fn display_simple_list<T: IntoIterator>(
 	lst: T,
