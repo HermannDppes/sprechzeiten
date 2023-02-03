@@ -109,13 +109,17 @@ fn day_list_continuation(input: &str) -> IResult<&str, Vec<Day>> {
 	day_list_elem(input)
 }
 
+// TODO: Figure out how to do this without cloning. It was possible up to
+//       Nom 6 but then fold was changed to take `FnMut() -> R` instead
+//       of `R` as the initial value argument.
 fn day_list(input: &str) -> IResult<&str, Vec<Day>> {
 	let (input, first) = day_list_elem(input)?;
-	nom::multi::fold_many0(
+	let (input, list) = nom::multi::fold_many0(
 		day_list_continuation,
-		first,
+		|| first.clone(),
 		merge_days
-	)(input)
+	)(input)?;
+	Ok((input, list))
 }
 
 fn daily(input: &str) -> IResult<&str, Vec<Day>> {
