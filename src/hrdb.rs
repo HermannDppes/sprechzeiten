@@ -1,34 +1,73 @@
+// TODO: Since Nom 7 the macros with which most of this was implemented
+//       have been removed. The code resulting from rewriting all of it
+//       to use the available functions is highly inconsistent – especially
+//       everything that used to be `do_parse!`. At some point, decide on
+//       best practices and go back to apply them consistently.
+//
+//       Is it better to have lots of `let (input, ` and `(input)?`
+//       boilerplate? Or is it better to have that in a single tuple parser?
+//       The disadvantages of boilerplate are obvious, but at least
+//       the variable to which stuff is bound and the parsers generating
+//       the stuff are on the same line – with tuples no such connection
+//       exists and one has to count out the n-th position in each tuple
+//       to know which variables belong to which parsers.
+//
+//       Is it better to rename `input` to `i` to shorten the boilerplate,
+//       at the expense of a standardized, higly-self-explanatory parameter
+//       name?
+//
+//       Should the results of tuple parsers be mapped to the final result
+//       (at the cost of one layer indentation/structure)?
+//       Or is it better to have `Ok((input, ` boilerplate
+//       that at least fits the linear structure of the code?
+
 use nom;
+use nom::IResult;
 
 use super::*;
 use super::time::{Day, Clock, OfficeHour};
 
 use std::str::FromStr;
 
-named!(names<&str, Names>,
-	map!(
-		separated_list1!(tag!(", "), map!(is_not!(",\n"), Name::from)),
+fn names(input: &str) -> IResult<&str, Names> {
+	nom::combinator::map(
+		nom::multi::separated_list1(
+			nom::bytes::complete::tag(", "),
+			nom::combinator::map(
+				nom::bytes::complete::is_not(",\n"),
+				Name::from
+			)
+		),
 		Names::from
-	)
-);
+	)(input)
+}
 
-named!(phone_number<&str, Phone>,
-	map!(nom::character::complete::digit1, |s| Phone::from_str(&s.as_ref()).unwrap())
-);
+fn phone_number(input: &str) -> IResult<&str, Phone> {
+	nom::combinator::map(
+		nom::character::complete::digit1,
+		|s: &str| Phone::from_str(&s.as_ref()).unwrap()
+	)(input)
+}
 
-named!(phone_numbers<&str, Phones>,
-	map!(separated_list0!(tag!(", "), phone_number), Phones::from)
-);
+fn phone_numbers(input: &str) -> IResult<&str, Phones> {
+	nom::combinator::map(
+		nom::multi::separated_list0(
+			nom::bytes::complete::tag(", "),
+			phone_number
+		),
+		Phones::from
+	)(input)
+}
 
-named!(day<&str, Day>,
-	alt!(
-		value!(Day::Mo, tag!("Mo")) |
-		value!(Day::Di, tag!("Di")) |
-		value!(Day::Mi, tag!("Mi")) |
-		value!(Day::Do, tag!("Do")) |
-		value!(Day::Fr, tag!("Fr"))
-	)
-);
+fn day(input: &str) -> IResult<&str, Day> {
+	nom::branch::alt((
+		nom::combinator::value(Day::Mo, nom::bytes::complete::tag("Mo")),
+		nom::combinator::value(Day::Di, nom::bytes::complete::tag("Di")),
+		nom::combinator::value(Day::Mi, nom::bytes::complete::tag("Mi")),
+		nom::combinator::value(Day::Do, nom::bytes::complete::tag("Do")),
+		nom::combinator::value(Day::Fr, nom::bytes::complete::tag("Fr"))
+	))(input)
+}
 
 fn single_day(day: Day) -> Vec<Day> {
 	let mut days = Vec::new();
@@ -46,69 +85,77 @@ fn days_from_range(begin: Day, end: Day) -> Vec<Day> {
 	days
 }
 
-named!(day_range<&str, Vec<Day>>,
-	do_parse!(
-		begin: day >>
-		tag!(" – ") >>
-		end: day >>
-		(days_from_range(begin, end))
-	)
-);
+fn day_range(input: &str) -> IResult<&str, Vec<Day>> {
+	let (input, begin) = day(input)?;
+	let (input, _) = nom::bytes::complete::tag(" – ")(input)?;
+	let (input, end) = day(input)?;
+	Ok((input, days_from_range(begin, end)))
+}
 
-named!(day_list_elem<&str, Vec<Day>>,
-	alt!(day_range | map!(day, single_day))
-);
+fn day_list_elem(input: &str) -> IResult<&str, Vec<Day>> {
+	nom::branch::alt((
+		day_range,
+		nom::combinator::map(day, single_day)
+	))(input)
+}
 
 fn merge_days(mut a: Vec<Day>, mut b: Vec<Day>) -> Vec<Day> {
 	a.append(&mut b);
 	a
 }
 
-named!(day_list_continuation<&str, Vec<Day>>,
-	do_parse!(
-		tag!(", ") >>
-		e: day_list_elem >>
-		(e)
-	)
-);
+fn day_list_continuation(input: &str) -> IResult<&str, Vec<Day>> {
+	let (input, _) = nom::bytes::complete::tag(", ")(input)?;
+	day_list_elem(input)
+}
 
-named!(day_list<&str, Vec<Day>>,
-	do_parse!(
-		first: day_list_elem >>
-		days: fold_many0!(
-			day_list_continuation,
-			first,
-			merge_days
-		) >>
-		(days)
-	)
-);
+fn day_list(input: &str) -> IResult<&str, Vec<Day>> {
+	let (input, first) = day_list_elem(input)?;
+	nom::multi::fold_many0(
+		day_list_continuation,
+		first,
+		merge_days
+	)(input)
+}
 
-named!(days<&str, Vec<Day>>,
-	alt!(value!(days_from_range(Day::Mo, Day::Fr), tag!("Tgl")) | day_list)
-);
+fn daily(input: &str) -> IResult<&str, Vec<Day>> {
+	nom::combinator::value(
+		days_from_range(Day::Mo, Day::Fr),
+		nom::bytes::complete::tag("Tgl")
+	)(input)
+}
 
-named!(small_number<&str, u8>,
-	map!(nom::character::complete::digit1, |str| FromStr::from_str(&str).unwrap())
-);
+fn days(input: &str) -> IResult<&str, Vec<Day>> {
+	nom::branch::alt((
+		daily,
+		day_list
+	))(input)
+}
 
-named!(time<&str, Clock>,
-	do_parse!(
-		hours: small_number >>
-		tag!(":") >>
-		minutes: small_number >>
-		(Clock::new(hours, minutes))
-	)
-);
+fn small_number(input: &str) -> IResult<&str, u8> {
+	nom::combinator::map(
+		nom::character::complete::digit1,
+		|str: &str| FromStr::from_str(str).unwrap()
+	)(input)
+}
 
-named!(time_pair<&str, (Clock, Clock)>,
-	do_parse!(
-		begin: time >>
-		tag!(" – ") >>
-		end: time >>
-		((begin, end))
-	)
-);
+fn time(input: &str) -> IResult<&str, Clock> {
+	let (input, hours) = small_number(input)?;
+	let (input, _) = nom::bytes::complete::tag(":")(input)?;
+	let (input, minutes) = small_number(input)?;
+	Ok((input, Clock::new(hours, minutes)))
+}
+
+fn time_pair(input: &str) -> IResult<&str, (Clock, Clock)> {
+	nom::combinator::map(
+		nom::sequence::tuple((
+			time,
+			nom::bytes::complete::tag(" - "),
+			time
+		)),
+		|(a, _, b)| (a, b)
+	)(input)
+}
 
 fn ranges_from_days_times(
 	days: Vec<Day>,
@@ -127,23 +174,30 @@ fn ranges_from_days_times(
 	ranges
 }
 
-named_args!(add_times<'a>(office: &mut Office) <&'a str, ()>,
-	do_parse!(
-		tag!("\n") >>
-		days: days >>
-		tag!(": ") >>
-		times: separated_list1!(tag!(", "), time_pair) >>
-		(office.add_times(ranges_from_days_times(days, times)))
-	)
-);
+fn add_times<'a>(
+	input: &'a str,
+	office: &mut Office
+) -> nom::IResult<&'a str, ()> {
+	let (input, (_, days, _, times)) = nom::sequence::tuple((
+		nom::bytes::complete::tag("\n"),
+		days,
+		nom::bytes::complete::tag(": "),
+		nom::multi::separated_list1(
+			nom::bytes::complete::tag(", "),
+			time_pair
+		)
+	))(input)?;
+	Ok((input, office.add_times(ranges_from_days_times(days, times))))
+}
 
-named_args!(add_comment<'a>(office: &mut Office) <&'a str, ()>,
-	do_parse!(
-		tag!("\n") >>
-		comment: map!(is_not!("\n"), Comment::from) >>
-		(office.add_comment(comment))
-	)
-);
+fn add_comment<'a>(input: &'a str, office: &mut Office) -> IResult<&'a str, ()> {
+	let (input, _) = nom::bytes::complete::tag("\n")(input)?;
+	let (input, comment) = nom::combinator::map(
+			nom::bytes::complete::is_not("\n"),
+			Comment::from
+	)(input)?;
+	Ok((input, office.add_comment(comment)))
+}
 
 fn add_info<'a>(
 	input: &'a str,
@@ -160,16 +214,16 @@ fn add_info<'a>(
 	}
 }
 
-named!(base_office<&str, Office>,
-	do_parse!(
-		names: names >>
-		tag!("\n") >>
-		phones: phone_numbers >>
-		(Office::new(names, phones))
-	)
-);
+fn base_office(input: &str) -> IResult<&str, Office> {
+	let (input, (names, _, phones)) = nom::sequence::tuple((
+		names,
+		nom::bytes::complete::tag("\n"),
+		phone_numbers
+	))(input)?;
+	Ok((input, Office::new(names, phones)))
+}
 
-fn office(input: &str) -> nom::IResult<&str, Office> {
+fn office(input: &str) -> IResult<&str, Office> {
 	let (mut input, mut office) = base_office(input).unwrap();
 	loop {
 		let res = add_info(input, &mut office);
@@ -182,9 +236,12 @@ fn office(input: &str) -> nom::IResult<&str, Office> {
 	Ok((input, office))
 }
 
-named!(pub offices<&str, Vec<Office>>,
-	separated_list0!(tag!("\n\n"), office)
-);
+pub fn offices(input: &str) -> IResult<&str, Vec<Office>> {
+	nom::multi::separated_list0(
+		nom::bytes::complete::tag("\n\n"),
+		office
+	)(input)
+}
 
 #[cfg(test)]
 mod tests {
