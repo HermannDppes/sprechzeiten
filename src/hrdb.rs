@@ -1,3 +1,14 @@
+//! A module to parse a textual specification of offices and their offices
+//! hours into the internal datatypes of this crate using Nom.
+//!
+//! The format is human writable enough for me but not very lenient, it expects
+//! exact adherence to its not-always-obvious for everyone layout and does not
+//! give sensible error messages so far. This is not expected to change unless
+//! other people start using the software.
+//!
+//! Also, the format is based on German shorthands and conventions, which, too,
+//! is not expected to change unless the programm – against my honest
+//! expectations –, finds some international usage.
 // TODO: Since Nom 7 the macros with which most of this was implemented
 //       have been removed. The code resulting from rewriting all of it
 //       to use the available functions is highly inconsistent – especially
@@ -29,6 +40,11 @@ use super::*;
 
 use std::str::FromStr;
 
+/// Nom parser for a list of names.
+///
+/// Names are expected to be in a single line, separated by a comma and space
+/// and can be any valid UTF-8 sequence containing neither commas nor newlines,
+/// which covers all names it needed to cover so far.
 fn names(input: &str) -> IResult<&str, Names> {
 	nom::combinator::map(
 		nom::multi::separated_list1(
@@ -42,6 +58,10 @@ fn names(input: &str) -> IResult<&str, Names> {
 	)(input)
 }
 
+/// Nom parser for a single phone number.
+///
+/// Phone numbers are currenly expected to use only decimal digits
+/// and no other symbols.
 fn phone_number(input: &str) -> IResult<&str, Phone> {
 	nom::combinator::map(
 		nom::character::complete::digit1,
@@ -49,6 +69,7 @@ fn phone_number(input: &str) -> IResult<&str, Phone> {
 	)(input)
 }
 
+/// Nom parser for a comma-and-space separated list of phone numbers.
 fn phone_numbers(input: &str) -> IResult<&str, Phones> {
 	nom::combinator::map(
 		nom::multi::separated_list0(
@@ -59,37 +80,42 @@ fn phone_numbers(input: &str) -> IResult<&str, Phones> {
 	)(input)
 }
 
+/// Nom parser for a single day of the week.
+///
+/// The parser expects the day to be encoded by its standard German shorthand.
 fn day(input: &str) -> IResult<&str, Day> {
 	nom::branch::alt((
 		nom::combinator::value(
-			Day::Mo,
+			Day::Mon,
 			nom::bytes::complete::tag("Mo"),
 		),
 		nom::combinator::value(
-			Day::Di,
+			Day::Tue,
 			nom::bytes::complete::tag("Di"),
 		),
 		nom::combinator::value(
-			Day::Mi,
+			Day::Wed,
 			nom::bytes::complete::tag("Mi"),
 		),
 		nom::combinator::value(
-			Day::Do,
+			Day::Thu,
 			nom::bytes::complete::tag("Do"),
 		),
 		nom::combinator::value(
-			Day::Fr,
+			Day::Fri,
 			nom::bytes::complete::tag("Fr"),
 		),
 	))(input)
 }
 
+/// Nom parser to parse a single day into a list of days.
 fn single_day(day: Day) -> Vec<Day> {
 	let mut days = Vec::new();
 	days.push(day);
 	days
 }
 
+/// Turning two days into the list of days between them (endpoints included).
 fn days_from_range(begin: Day, end: Day) -> Vec<Day> {
 	let mut days = single_day(begin.clone());
 	let mut day = begin;
@@ -100,6 +126,17 @@ fn days_from_range(begin: Day, end: Day) -> Vec<Day> {
 	days
 }
 
+#[allow(rustdoc::invalid_rust_codeblocks)]
+/// Nom parser to parse a range of days into a list.
+///
+/// A range may be specified by two days separated by a hyphen surround by a
+/// space on either side.
+///
+/// # Example
+///
+/// ```ignore
+/// day_range("Mo - Fr") ≈ Ok(("", vec![Day::Mon, Day::Tue, Day::Wed]));
+/// ```
 fn day_range(input: &str) -> IResult<&str, Vec<Day>> {
 	let (input, begin) = day(input)?;
 	let (input, _) = nom::bytes::complete::tag(" – ")(input)?;
@@ -107,6 +144,9 @@ fn day_range(input: &str) -> IResult<&str, Vec<Day>> {
 	Ok((input, days_from_range(begin, end)))
 }
 
+/// Helper for `day_list`, parsing a single entry of the comma-and-space
+/// separated list (and in fact being quite agonstic about any commas
+/// and spaces).
 fn day_list_elem(input: &str) -> IResult<&str, Vec<Day>> {
 	nom::branch::alt((
 		day_range,
@@ -114,11 +154,14 @@ fn day_list_elem(input: &str) -> IResult<&str, Vec<Day>> {
 	))(input)
 }
 
+/// Merge two lists of `Day`s into a single list.
 fn merge_days(mut a: Vec<Day>, mut b: Vec<Day>) -> Vec<Day> {
 	a.append(&mut b);
 	a
 }
 
+/// Helper for `day_list`, parsing the comma, the space and the next entry
+/// in the list.
 fn day_list_continuation(input: &str) -> IResult<&str, Vec<Day>> {
 	let (input, _) = nom::bytes::complete::tag(", ")(input)?;
 	day_list_elem(input)
@@ -127,6 +170,13 @@ fn day_list_continuation(input: &str) -> IResult<&str, Vec<Day>> {
 // TODO: Figure out how to do this without cloning. It was possible up to
 //       Nom 6 but then fold was changed to take `FnMut() -> R` instead
 //       of `R` as the initial value argument.
+// TODO: Should this be ordered/deduplicated?
+//       Probably not, since it makes parsing slower and we can probably
+//       design the downstream uses in a way that does not depend on any
+//       order or duplication of these but it needs to be reevaluated
+//       when the use cases are clearer.
+/// Nom parser for a comma-and-space separated list of days and day ranges
+/// into a single list of `Day`s.
 fn day_list(input: &str) -> IResult<&str, Vec<Day>> {
 	let (input, first) = day_list_elem(input)?;
 	let (input, list) = nom::multi::fold_many0(
@@ -137,17 +187,29 @@ fn day_list(input: &str) -> IResult<&str, Vec<Day>> {
 	Ok((input, list))
 }
 
+/// Nom parser for daily occurences.
+///
+/// Parses the shorthand `"Tgl"` to a list of all the five `Day`s in order.
 fn daily(input: &str) -> IResult<&str, Vec<Day>> {
 	nom::combinator::value(
-		days_from_range(Day::Mo, Day::Fr),
+		days_from_range(Day::Mon, Day::Fri),
 		nom::bytes::complete::tag("Tgl"),
 	)(input)
 }
 
+/// Nom parser for a days-of-the-week specification.
+///
+/// The input can either be the specification `"Tgl"` or a comma-and-space
+/// separated list of day shorthands and day ranges. The result is the union
+/// of these, containing all specified days.
 fn days(input: &str) -> IResult<&str, Vec<Day>> {
 	nom::branch::alt((daily, day_list))(input)
 }
 
+/// Nom parser for a small number.
+///
+/// Expects the input to be a decimal representation of an integer betwenn
+/// 0 and 255 (inclusive).
 fn small_number(input: &str) -> IResult<&str, u8> {
 	nom::combinator::map(
 		nom::character::complete::digit1,
@@ -155,6 +217,9 @@ fn small_number(input: &str) -> IResult<&str, u8> {
 	)(input)
 }
 
+/// Nom parser for a time specification.
+///
+/// Expects the input to be of the form HH:MM in a 24 hour format.
 fn time(input: &str) -> IResult<&str, Clock> {
 	let (input, hours) = small_number(input)?;
 	let (input, _) = nom::bytes::complete::tag(":")(input)?;
@@ -162,6 +227,10 @@ fn time(input: &str) -> IResult<&str, Clock> {
 	Ok((input, Clock::new(hours, minutes)))
 }
 
+/// Nom parser for a time range.
+///
+/// Expects the input to be a pair of times separated by space-dash-space
+/// and returns the pair of these two times-of-day.
 fn time_pair(input: &str) -> IResult<&str, (Clock, Clock)> {
 	nom::combinator::map(
 		nom::sequence::tuple((
@@ -173,7 +242,9 @@ fn time_pair(input: &str) -> IResult<&str, (Clock, Clock)> {
 	)(input)
 }
 
-fn ranges_from_days_times(
+/// Turns a list of days-of-week and list of pairs of times-of-day
+/// into the corresponding list of `OfficeHour`s.
+fn office_hours_from_days_and_times(
 	days: Vec<Day>,
 	times: Vec<(Clock, Clock)>,
 ) -> Vec<OfficeHour> {
@@ -190,6 +261,13 @@ fn ranges_from_days_times(
 	ranges
 }
 
+/// Nom parser modifying an `Office` by adding the `OfficeHour`s specified
+/// by the input.
+///
+/// The office hours should be specified by specifying the days, then a colon
+/// and a space and then specifying the time ranges common to these days.
+/// When not all days have the same time ranges, multiple such specifications
+/// must be made on separate lines to be merged by a higher level parser.
 fn add_times<'a>(
 	input: &'a str,
 	office: &mut Office,
@@ -203,9 +281,15 @@ fn add_times<'a>(
 			time_pair,
 		),
 	))(input)?;
-	Ok((input, office.add_times(ranges_from_days_times(days, times))))
+	// TODO: This line is over 80 characters in width.
+	Ok((input, office.add_times(office_hours_from_days_and_times(days, times))))
 }
 
+/// Nom parser modifying an `Office` by adding the `Comment` specified
+/// by the input.
+///
+/// A comment is any valid UTF-8 string not containing new lines and not
+/// obeying the formatting rules for office hour specifications.
 fn add_comment<'a>(
 	input: &'a str,
 	office: &mut Office,
@@ -218,10 +302,13 @@ fn add_comment<'a>(
 	Ok((input, office.add_comment(comment)))
 }
 
+/// Nom parser modifying an `Office` by adding the `OfficeHour`s or `Comment`
+/// specified by the input.
 fn add_info<'a>(
 	input: &'a str,
 	office: &mut Office,
 ) -> nom::IResult<&'a str, ()> {
+	// TODO: Why is this not a `nom::combinator::alt` application?
 	if let Ok((rest, _)) = add_times(input, office) {
 		Ok((rest, ()))
 	} else if let Ok((rest, _)) = add_comment(input, office) {
@@ -236,6 +323,10 @@ fn add_info<'a>(
 	}
 }
 
+/// Nom parser for the basic information of an `Office`.
+///
+/// The input should be on two lines, the first containing the list of names,
+/// the second the list of phone numbers.
 fn base_office(input: &str) -> IResult<&str, Office> {
 	let (input, (names, _, phones)) = nom::sequence::tuple((
 		names,
@@ -245,6 +336,11 @@ fn base_office(input: &str) -> IResult<&str, Office> {
 	Ok((input, Office::new(names, phones)))
 }
 
+/// Nom parser for an entire `Office`.
+///
+/// An office should be specified by the basic information on the first two
+/// lines and then any number of lines with office hours or comments. An
+/// office ends with the first empty line after the first two.
 fn office(input: &str) -> IResult<&str, Office> {
 	let (mut input, mut office) = base_office(input).unwrap();
 	loop {
@@ -258,6 +354,9 @@ fn office(input: &str) -> IResult<&str, Office> {
 	Ok((input, office))
 }
 
+/// Nom parser for a list of `Office`s.
+///
+/// Offices should be separated by a single empty line.
 pub fn offices(input: &str) -> IResult<&str, Vec<Office>> {
 	nom::multi::separated_list0(
 		nom::bytes::complete::tag("\n\n"),
@@ -272,19 +371,19 @@ mod tests {
 	#[test]
 	fn test_day() {
 		let (_, res) = day("Mo").unwrap();
-		assert_eq!(res, Day::Mo);
+		assert_eq!(res, Day::Mon);
 	}
 
 	#[test]
 	fn test_day_range() {
 		let (_, res) = day_range("Di – Do").unwrap();
-		assert_eq!(res, vec![Day::Di, Day::Mi, Day::Do]);
+		assert_eq!(res, vec![Day::Tue, Day::Wed, Day::Thu]);
 	}
 
 	#[test]
 	fn test_day_list() {
 		let (_, res) = day_list("Mo, Mi – Fr").unwrap();
-		assert_eq!(res, vec![Day::Mo, Day::Mi, Day::Do, Day::Fr]);
+		assert_eq!(res, vec![Day::Mon, Day::Wed, Day::Thu, Day::Fri]);
 	}
 
 	#[test]
@@ -292,7 +391,7 @@ mod tests {
 		let (_, res) = days("Tgl").unwrap();
 		assert_eq!(
 			res,
-			vec![Day::Mo, Day::Di, Day::Mi, Day::Do, Day::Fr]
+			vec![Day::Mon, Day::Tue, Day::Wed, Day::Thu, Day::Fri]
 		);
 	}
 

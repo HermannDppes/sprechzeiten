@@ -5,7 +5,6 @@ pub fn process(str: &str) -> &str {
 	""
 }
 
-#[macro_use]
 extern crate nom;
 
 mod hrdb;
@@ -40,6 +39,7 @@ where
 	}
 }
 
+/// The name of a person.
 #[derive(Debug, Clone)]
 struct Name {
 	data: String,
@@ -58,6 +58,7 @@ impl fmt::Display for Name {
 	}
 }
 
+/// A set of `Name`s.
 #[derive(Debug, Clone)]
 struct Names {
 	data: Vec<Name>,
