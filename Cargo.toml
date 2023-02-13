@@ -6,3 +6,7 @@ authors = ["Hermann Döppes <hermannd.ouml.ppes@gmail.com>"]
 
 [dependencies]
 nom = {version = "^7.0"}
+
+[dependencies.time]
+version = "^0.3"
+features = ["local-offset"]

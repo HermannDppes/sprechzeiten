@@ -10,8 +10,17 @@ pub enum Day {
 	Fri,
 }
 
+#[derive(Debug)]
+pub enum WeekendError {
+	Sat,
+	Sun,
+}
+
 impl Day {
-	// TODO: Is there a sensible trait I should implement instead?
+	// TODO: This should possibly be an implementation of `std::iter::Step`
+	// 	 instead, but this is currently nightly only.
+	//       Once this is implemented, we can also replace
+	//       `hrdb::days_from_range` with the standard facilities.
 	pub fn next(&self) -> Day {
 		match self {
 			Day::Mon => Day::Tue,
@@ -19,6 +28,23 @@ impl Day {
 			Day::Wed => Day::Thu,
 			Day::Thu => Day::Fri,
 			Day::Fri => panic!(),
+		}
+	}
+}
+
+impl TryFrom<time::Weekday> for Day {
+	type Error = WeekendError;
+
+	fn try_from(d: time::Weekday) -> Result<Self, Self::Error> {
+		println!("{:?}", d);
+		match d {
+			time::Weekday::Monday => Ok(Day::Mon),
+			time::Weekday::Tuesday => Ok(Day::Tue),
+			time::Weekday::Wednesday => Ok(Day::Wed),
+			time::Weekday::Thursday => Ok(Day::Thu),
+			time::Weekday::Friday => Ok(Day::Fri),
+			time::Weekday::Saturday => Err(WeekendError::Sat),
+			time::Weekday::Sunday => Err(WeekendError::Sun),
 		}
 	}
 }
@@ -37,6 +63,13 @@ impl Clock {
 		assert!(hours <= 23);
 		assert!(minutes <= 59);
 		Clock { hours, minutes }
+	}
+}
+
+impl From<time::Time> for Clock {
+	fn from(t: time::Time) -> Clock {
+		let (hours, minutes, _) = t.as_hms();
+		Clock {hours, minutes}
 	}
 }
 
@@ -63,6 +96,33 @@ impl Ord for Clock {
 pub struct Time {
 	day: Day,
 	clock: Clock,
+}
+
+#[derive(Debug)]
+pub enum NowError {
+	IndeterminateOffset(time::error::IndeterminateOffset),
+	Weekend(WeekendError),
+}
+
+impl From<time::error::IndeterminateOffset> for NowError {
+	fn from(io: time::error::IndeterminateOffset) -> Self {
+		NowError::IndeterminateOffset(io)
+	}
+}
+
+impl From<WeekendError> for NowError {
+	fn from(e: WeekendError) -> Self {
+		NowError::Weekend(e)
+	}
+}
+
+impl Time {
+	pub fn now() -> Result<Time, NowError> {
+		let now = time::OffsetDateTime::now_local()?;
+		let day = Day::try_from(now.weekday())?;
+		let clock = Clock::from(now.time());
+		Ok(Time {day, clock})
+	}
 }
 
 /// The timing information of a single contiguous reachability by phone.
