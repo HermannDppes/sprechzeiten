@@ -36,7 +36,6 @@ impl TryFrom<time::Weekday> for Day {
 	type Error = WeekendError;
 
 	fn try_from(d: time::Weekday) -> Result<Self, Self::Error> {
-		println!("{:?}", d);
 		match d {
 			time::Weekday::Monday => Ok(Day::Mon),
 			time::Weekday::Tuesday => Ok(Day::Tue),
@@ -147,30 +146,24 @@ impl OfficeHour {
 }
 
 /// A set of `OfficeHour`s.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OfficeHours {
-	// TODO: Probably want to not have that public.
-	/// The internal data which is only temporarily even a public field.
-	pub data: Vec<OfficeHour>,
+	/// The internal data.
+	data: Vec<OfficeHour>,
 }
 
 impl OfficeHours {
-	// TODO: Why return `None` and `Some(non-empty-list)` instead of just
-	//       returning the empty list when no office hours match?
-	// TODO: I don't even see why this function would be useful at all.
-	//       Would I not want to filter `Offices` by their associated
-	//       office hour having `.filter_time(t).is_some() == true`?
-	/// Filter out the subset of `OfficeHour`s taking place at `time`.
-	pub fn filter_time(&self, time: &Time) -> Option<OfficeHours> {
-		let mut data = Vec::<OfficeHour>::new();
-		for oh in self.data.iter().filter(|oh| oh.contains(&time)) {
-			data.push(oh.clone());
-		}
-		if data.len() > 0 {
-			Some(OfficeHours { data })
-		} else {
-			None
-		}
+	pub fn empty() -> OfficeHours {
+		let data = Vec::new();
+		OfficeHours { data }
+	}
+
+	pub fn append(&mut self, mut new_times: Vec<OfficeHour>) {
+		self.data.append(&mut new_times)
+	}
+
+	pub fn contain(&self, time: &Time) -> bool {
+		self.data.iter().any(|x| x.contains(time))
 	}
 }
 

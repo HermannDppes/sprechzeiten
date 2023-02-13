@@ -357,10 +357,14 @@ fn office(input: &str) -> IResult<&str, Office> {
 /// Nom parser for a list of `Office`s.
 ///
 /// Offices should be separated by a single empty line.
-pub fn offices(input: &str) -> IResult<&str, Vec<Office>> {
-	nom::multi::separated_list0(
-		nom::bytes::complete::tag("\n\n"),
-		office,
+// TODO: Should this insist on parsing an EOF at the end?
+pub fn offices(input: &str) -> IResult<&str, Offices> {
+	nom::combinator::map(
+		nom::multi::separated_list0(
+			nom::bytes::complete::tag("\n\n"),
+			office,
+		),
+		Offices::from
 	)(input)
 }
 

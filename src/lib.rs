@@ -1,14 +1,5 @@
-pub fn process(str: &str) -> &str {
-	let (input, offices) = hrdb::offices(str).unwrap();
-	println!("{:?}", offices);
-	println!("{}", input);
-	""
-}
-
-extern crate nom;
-
-mod hrdb;
-mod time;
+pub mod hrdb;
+pub mod time;
 
 use std::str::FromStr;
 
@@ -30,11 +21,11 @@ where
 		loop {
 			// This cannot panic! due to the peeks
 			let next = iter.next().unwrap();
-			let res = write!(fmt, "{}", next);
+			write!(fmt, "{}", next)?;
 			if iter.peek().is_none() {
-				break res;
+				break Ok(());
 			}
-			write!(fmt, ", ");
+			write!(fmt, ", ")?;
 		}
 	}
 }
@@ -146,12 +137,17 @@ impl From<Vec<Comment>> for Comments {
 }
 
 impl Comments {
+	fn empty() -> Comments {
+		let data = Vec::new();
+		Comments { data }
+	}
+
 	fn push(&mut self, comment: Comment) {
 		self.data.push(comment)
 	}
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Office {
 	names: Names,
 	phones: Phones,
@@ -161,8 +157,8 @@ pub struct Office {
 
 impl Office {
 	fn new(names: Names, phones: Phones) -> Office {
-		let times = OfficeHours { data: Vec::new() };
-		let comments = Comments { data: Vec::new() };
+		let times = OfficeHours::empty();
+		let comments = Comments::empty();
 		Office {
 			names,
 			phones,
@@ -171,29 +167,26 @@ impl Office {
 		}
 	}
 
-	fn add_times(&mut self, mut new_times: Vec<OfficeHour>) {
-		self.times.data.append(&mut new_times);
+	fn add_times(&mut self, new_times: Vec<OfficeHour>) {
+		self.times.append(new_times);
 	}
 
 	fn add_comment(&mut self, comment: Comment) {
 		self.comments.push(comment);
 	}
 
-	fn filter_time(&self, time: &Time) -> Option<Office> {
-		let names = self.names.clone();
-		let phones = self.phones.clone();
-		let maybe_times = self.times.filter_time(&time);
-		let comments = self.comments.clone();
-		if let Some(times) = maybe_times {
-			Some(Office {
-				names,
-				phones,
-				times,
-				comments,
-			})
-		} else {
-			None
+	fn reachable(&self, time: &Time) -> bool {
+		self.times.contain(time)
+	}
+}
+
+impl fmt::Display for Office {
+	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+		write!(fmt, "{}\n{}\n", self.names, self.phones)?;
+		for c in &self.comments.data {
+			write!(fmt, "{}\n", c.data)?;
 		}
+		Ok(())
 	}
 }
 
@@ -202,13 +195,26 @@ pub struct Offices {
 }
 
 impl Offices {
-	fn filter_time(&self, time: &Time) -> Offices {
-		let mut data = Vec::new();
-		for office in &self.data {
-			if let Some(office) = office.filter_time(&time) {
-				data.push(office);
-			}
+	pub fn filter_time(&self, time: &Time) -> Offices {
+		let data = self.data.iter()
+			.filter(|x| x.reachable(time))
+			.cloned()
+			.collect();
+		Offices { data }
+	}
+}
+
+impl fmt::Display for Offices {
+	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+		for o in &self.data {
+			write!(fmt, "{}\n", o)?;
 		}
+		Ok(())
+	}
+}
+
+impl From<Vec<Office>> for Offices {
+	fn from(data: Vec<Office>) -> Self {
 		Offices { data }
 	}
 }
